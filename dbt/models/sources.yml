@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: santa_clara_raw
+    database: USER_DB_RAVEN
+    schema: ANALYTICS
+    tables:
+      - name: CRASHES_RAW
+      - name: TRAFFIC_RAW
+      - name: WEATHER_RAW
