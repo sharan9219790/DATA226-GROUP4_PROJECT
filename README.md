@@ -1,157 +1,188 @@
-Santa Clara Crash Analytics Pipeline — DATA226 — Group Project
-(Airflow → Snowflake → dbt → Tableau)
+# **Santa Clara Crash Analytics Pipeline — DATA226 — Group Project**
+*(Airflow → Snowflake → dbt → Tableau)*
 
-Overview:
-    This project implements a full ELT pipeline for analyzing Santa Clara County crash data.
-    It integrates historical crash CSVs, traffic APIs, weather APIs, Snowflake warehousing,
-    dbt transformations, and Tableau dashboards.
+## 📘 Overview
+This project implements a complete, production-oriented **ELT (Extract–Load–Transform)** pipeline designed to automate **traffic accident analytics for Santa Clara County**.
 
-Pipeline Steps:
-    1. Extraction — crash CSV, OpenWeather API, Google Distance Matrix API
-    2. Loading — Snowflake RAW schema
-    3. Transformation — dbt staging → intermediate → marts
-    4. Visualization — Tableau dashboards
+The workflow includes:
 
-------------------------------------------------------------
-Architecture Diagram (Mermaid)
+1. **Extraction** — ingest historical crash CSVs, weather API data, and traffic API data  
+2. **Loading** — store raw datasets in the **Snowflake RAW schema**  
+3. **Transformation** — clean and model data using **dbt**  
+4. **Visualization** — build analytical dashboards using **Tableau**  
 
-    mermaid
-    flowchart LR
-        CSV[Historical Crash Data] --> A[traffic_crash_etl.py Airflow DAG]
-        WEATHER[OpenWeather API] --> W[weather.py Airflow DAG]
-        TRAFFIC[Google Distance Matrix API] --> G[Google_maps.py Airflow DAG]
-        A --> RAW[Snowflake RAW Schema]
-        W --> RAW
-        G --> RAW
-        RAW --> DBT[dbt Models]
-        DBT --> MART[Snowflake MART Schema]
-        MART --> TABLEAU[Tableau Dashboards]
-        TABLEAU --> INSIGHTS[Risk Hotspots, Weather Impact, Crash Forecasts]
+This demonstrates enterprise-level orchestration, warehousing, transformation modeling, and BI integration.
 
-------------------------------------------------------------
-Repository Structure:
+---
 
-    .
-    ├── dags/
-    │   ├── Google_maps.py          (traffic API ingestion)
-    │   ├── weather.py              (weather API ingestion)
-    │   ├── traffic_crash_etl.py    (crash ETL + dbt trigger)
-    │   └── snowflake_connector.py   (shared Snowflake utilities)
-    ├── data/
-    ├── tableau/
-    ├── compose.yaml
-    └── README.md
+## 🧱 Architecture Diagram
+```mermaid
+flowchart LR
+    CSV[Historical Crash Data] --> A[traffic_crash_etl.py\nAirflow DAG]
+    WEATHER[OpenWeather API] --> W[weather.py\nAirflow DAG]
+    TRAFFIC[Google Distance Matrix API] --> G[Google_maps.py\nAirflow DAG]
 
-------------------------------------------------------------
-Prerequisites:
+    A --> RAW[Snowflake RAW Schema]
+    W --> RAW
+    G --> RAW
 
-    Python 3.10+
-    Docker + Docker Compose
-    Snowflake account
-    dbt-core + dbt-snowflake
-    Tableau Desktop / Public
-    API keys: OpenWeatherMap, Google Distance Matrix
+    RAW --> DBT[dbt Models\nStaging → Intermediate → Marts]
+    DBT --> MART[Snowflake MART Schema]
 
-------------------------------------------------------------
-Required Environment Variables:
+    MART --> TABLEAU[Tableau Dashboards]
+    TABLEAU --> INSIGHTS[Risk Hotspots\nWeather Impact\nCrash Forecasts]
+📁 Repository Structure
+bash
+Copy code
+.
+├── dags/
+│   ├── Google_maps.py              # Traffic API ingestion (Google Distance Matrix)
+│   ├── weather.py                  # Weather API ingestion (OpenWeatherMap)
+│   ├── traffic_crash_etl.py        # Crash data ingestion + dbt trigger
+│   └── snowflake_connector.py      # Shared Snowflake utilities
+│
+├── data/                           # Historical accident datasets
+├── tableau/                        # Dashboard files / screenshots
+├── compose.yaml                    # Docker Compose for Airflow cluster
+└── README.md
+🔧 Prerequisites
+Python 3.10+
 
-    export SNOWFLAKE_ACCOUNT="<account>"
-    export SNOWFLAKE_USER="<user>"
-    export SNOWFLAKE_PASSWORD="<password>"
-    export SNOWFLAKE_ROLE="DATA226_ROLE"
-    export SNOWFLAKE_WAREHOUSE="COMPUTE_WH"
-    export SNOWFLAKE_DATABASE="ACCIDENT_DW"
-    export SNOWFLAKE_SCHEMA="RAW"
+Docker + Docker Compose
 
-    export OPENWEATHER_API_KEY="<weather_key>"
-    export GOOGLE_DISTANCE_MATRIX_API_KEY="<maps_key>"
+Snowflake Account
 
-    export DBT_PROFILES_DIR="$(pwd)/dbt"
-    export AIRFLOW_HOME="$(pwd)/.airflow"
+dbt-core + dbt-snowflake
 
-------------------------------------------------------------
-Airflow Configuration:
+Tableau Desktop / Tableau Public
 
-1. Start Airflow:
-        docker-compose -f compose.yaml up --build
+API keys:
 
-2. Access Airflow UI:
-        http://localhost:8080
-        username: airflow
-        password: airflow
+OpenWeatherMap
 
-3. Snowflake Connection (snowflake_conn):
-        Conn Type: Snowflake
-        Account: <account>
-        User: <user>
-        Password: <password>
-         Warehouse: COMPUTE_WH
-        Database: ACCIDENT_DW
-        Schema: RAW
-        Role: DATA226_ROLE
+Google Distance Matrix API
 
-4. Airflow Variables:
-        snowflake_database = ACCIDENT_DW
-        raw_schema = RAW
-        intermediate_schema = INT
-        mart_schema = MART
-        openweather_api_key = <key>
-        traffic_api_key = <key>
+🔐 Required Environment Variables
+bash
+Copy code
+export SNOWFLAKE_ACCOUNT="<account>"
+export SNOWFLAKE_USER="<user>"
+export SNOWFLAKE_PASSWORD="<password>"
+export SNOWFLAKE_ROLE="DATA226_ROLE"
+export SNOWFLAKE_WAREHOUSE="COMPUTE_WH"
+export SNOWFLAKE_DATABASE="ACCIDENT_DW"
+export SNOWFLAKE_SCHEMA="RAW"
 
-------------------------------------------------------------
-DAGs (matching your actual files):
+export OPENWEATHER_API_KEY="<weather_key>"
+export GOOGLE_DISTANCE_MATRIX_API_KEY="<maps_key>"
 
-Google_maps.py:
-    Fetches Google Distance Matrix travel time + congestion
-    Loads into RAW.TRAFFIC tables
+export DBT_PROFILES_DIR="$(pwd)/dbt"
+export AIRFLOW_HOME="$(pwd)/.airflow"
+🌀 Airflow Configuration
+1. Start Airflow
+bash
+Copy code
+docker-compose -f compose.yaml up --build
+2. Access Airflow UI
+http://localhost:8080
+Login: airflow / airflow
 
-weather.py:
-    Fetches OpenWeatherMap data
-    Loads into RAW.WEATHER tables
+3. Configure Snowflake Connection
+Airflow → Admin → Connections → snowflake_conn
 
-traffic_crash_etl.py:
-    Loads crash CSV → RAW.CRASHES
-    Cleans + validates data
-    Triggers dbt run
+Fill in:
 
-snowflake_connector.py:
-    Helper module for all Snowflake operations
+yaml
+Copy code
+Conn Type: Snowflake
+Account: <account>
+User: <user>
+Password: <password>
+Warehouse: COMPUTE_WH
+Database: ACCIDENT_DW
+Schema: RAW
+Role: DATA226_ROLE
+4. Configure Airflow Variables
+Variable	Value
+snowflake_database	ACCIDENT_DW
+raw_schema	RAW
+intermediate_schema	INT
+mart_schema	MART
+openweather_api_key	<key>
+traffic_api_key	<key>
 
-------------------------------------------------------------
-dbt Layer:
+📡 DAGs Overview
+traffic_crash_etl.py
+Loads historical crash CSV data
 
-Run dbt:
-        dbt debug
-        dbt run
-        dbt test
+Performs validation
 
-Snowflake test queries:
-        SELECT COUNT(*) FROM RAW.CRASHES;
-        SELECT * FROM MART.FACT_CRASHES LIMIT 20;
+Writes into RAW.CRASHES
 
-dbt output tables:
-        FACT_CRASHES
-        DIM_LOCATION
-        DIM_WEATHER
-        DIM_TRAFFIC
-        DIM_DATE
+Triggers dbt run
 
-------------------------------------------------------------
-Tableau Dashboard:
+weather.py
+Fetches weather metrics from OpenWeatherMap
 
-Snowflake Connection:
-        Warehouse: COMPUTE_WH
-        Database: ACCIDENT_DW
-        Schema: MART
+Stores into RAW.WEATHER tables
 
-Dashboard visuals:
-        Crash trends
-        Severity distribution
-        Weather × traffic control risk
-        Road surface & lighting impact
-        Geospatial hotspots
-        Crash forecasting
+Google_maps.py
+Fetches travel time + congestion using Google Distance Matrix
 
-------------------------------------------------------------
-License:
-    For academic use in DATA 226 (San José State University)
+Stores into RAW.TRAFFIC tables
+
+snowflake_connector.py
+Utility module for executing Snowflake SQL
+
+Handles DDL/DML, connections, and staging
+
+🧱 dbt Layer
+Run manually:
+
+bash
+Copy code
+dbt debug
+dbt run
+dbt test
+Verify results:
+
+sql
+Copy code
+SELECT COUNT(*) FROM RAW.CRASHES;
+SELECT * FROM MART.FACT_CRASHES LIMIT 20;
+Final dbt models include:
+
+FACT_CRASHES
+
+DIM_LOCATION
+
+DIM_WEATHER
+
+DIM_TRAFFIC
+
+DIM_DATE
+
+📊 Tableau Dashboard
+Connect Tableau → Snowflake:
+
+makefile
+Copy code
+Warehouse: COMPUTE_WH
+Database: ACCIDENT_DW
+Schema: MART
+Recommended charts:
+
+Crash trends over time
+
+Severity distribution
+
+Weather × traffic control risk heatmaps
+
+Roadway surface & lighting condition effects
+
+Geographic accident hotspots
+
+Crash forecasting
+
+📄 License
+For academic use in DATA 226 — San José State University.
