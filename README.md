@@ -1,4 +1,4 @@
-# Accident Analytics Pipeline — DATA226
+# Santa Clara Crash Analytics Pipeline — DATA226 - Group project
 (Airflow → Snowflake → dbt → Tableau)
 
 ## 📘 Overview
