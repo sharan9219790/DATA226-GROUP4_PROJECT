@@ -1,27 +1,27 @@
-# Santa Clara Crash Analytics Pipeline — DATA226 - Group project
+# Accident Analytics Pipeline — DATA226
 (Airflow → Snowflake → dbt → Tableau)
 
 ## 📘 Overview
-This project implements an ELT pipeline for analyzing traffic accident data from Santa Clara County.
+This project implements an ELT (Extract–Load–Transform) pipeline for analyzing traffic accident data from Santa Clara County using Airflow, Snowflake, dbt, and Tableau.
 
 Pipeline steps:
-1. Extraction — crash CSV, live weather API, live traffic API  
-2. Loading — raw data stored in Snowflake RAW schema  
+1. Extraction — historical crash CSV, live weather API, live traffic API  
+2. Loading — write raw data into Snowflake RAW schema  
 3. Transformation — dbt models (staging → intermediate → marts)  
-4. Visualization — Tableau dashboards (hotspots, trends, weather risk, forecasting)
+4. Visualization — Tableau dashboards for trends, hotspots, and risk analysis  
 
 ---
 
-## 🧱 Architecture Diagram 
-
-Paste this directly into GitHub (outside this code block):
+## 🧱 Architecture Diagram (Mermaid)
 
     mermaid
     flowchart LR
-        CSV[Historical Crash Data] --> A[Airflow Ingestion DAGs]
-        WEATHER[OpenWeather API] --> A
-        TRAFFIC[Google Distance Matrix API] --> A
+        CSV[Historical Crash Data] --> A[traffic_crash_etl.py\nAirflow DAG]
+        WEATHER[OpenWeather API] --> W[weather.py\nAirflow DAG]
+        TRAFFIC[Google Distance Matrix API] --> G[Google_maps.py\nAirflow DAG]
         A --> RAW[Snowflake RAW Schema]
+        W --> RAW
+        G --> RAW
         RAW --> DBT[dbt Models]
         DBT --> MART[Snowflake MART Schema]
         MART --> TABLEAU[Tableau Dashboards]
@@ -32,21 +32,28 @@ Paste this directly into GitHub (outside this code block):
 ## 📁 Repository Structure
 
     .
-    ├── dags/                         # Airflow DAGs (ingestion + dbt)
-    ├── data/                         # Historical accident dataset(s)
-    ├── tableau/                      # Tableau dashboards / screenshots
-    ├── compose.yaml                  # Docker Compose for Airflow
+    ├── dags/
+    │   ├── Google_maps.py           # DAG for Google Distance Matrix (traffic)
+    │   ├── weather.py               # DAG for OpenWeatherMap (weather)
+    │   ├── traffic_crash_etl.py     # Main crash ETL DAG (loads CSV, runs dbt)
+    │   └── snowflake_connector.py   # Shared Snowflake connection / utilities
+    ├── data/                        # Historical accident dataset(s)
+    ├── tableau/                     # Tableau dashboards / screenshots
+    ├── compose.yaml                 # Docker Compose for Airflow stack
     └── README.md
 
 ---
 
 ## 🔧 Prerequisites
-- Python 3.10+
-- Docker + Docker Compose
-- Snowflake account
-- dbt-core + dbt-snowflake
-- Tableau Desktop / Public
-- API keys: OpenWeatherMap + Google Distance Matrix
+
+- Python 3.10+  
+- Docker & Docker Compose  
+- Snowflake account  
+- dbt-core + dbt-snowflake  
+- Tableau Desktop or Tableau Public  
+- API keys:
+  - OpenWeatherMap  
+  - Google Distance Matrix API  
 
 ---
 
@@ -70,7 +77,7 @@ Paste this directly into GitHub (outside this code block):
 
 ## 🌀 Airflow Configuration
 
-### 1. Start Airflow
+### 1. Start Airflow with Docker Compose
 
     docker-compose -f compose.yaml up --build
 
@@ -93,70 +100,89 @@ Paste this directly into GitHub (outside this code block):
 
 ### 4. Airflow Variables
 
-    snowflake_database = ACCIDENT_DW
-    raw_schema = RAW
-    intermediate_schema = INT
-    mart_schema = MART
-    openweather_api_key = <key>
-    traffic_api_key = <key>
+    snowflake_database      = ACCIDENT_DW
+    raw_schema              = RAW
+    intermediate_schema     = INT
+    mart_schema             = MART
+    openweather_api_key     = <key>
+    traffic_api_key         = <key>
 
 ---
 
-## 📡 DAGs
+## 📡 DAGs (by file)
 
-### ingest_crash_data
-- Loads crash CSV into RAW  
-- Creates tables if needed  
-- Validates row counts  
+### Google_maps.py
+- Airflow DAG to call **Google Distance Matrix API**
+- Fetches travel time / congestion for configured origin–destination pairs
+- Writes raw traffic data into `RAW.TRAFFIC_*` tables in Snowflake
 
-### ingest_weather_data
-- Calls OpenWeather API  
-- Stores weather snapshots  
+### weather.py
+- Airflow DAG to call **OpenWeatherMap API**
+- Fetches current weather for relevant locations / time ranges
+- Writes raw weather data into `RAW.WEATHER_*` tables in Snowflake
 
-### ingest_traffic_data
-- Calls Google Distance Matrix API  
-- Stores congestion + travel-time data  
+### traffic_crash_etl.py
+- Main **crash ETL DAG**
+- Reads crash CSV files from `data/`
+- Uses `snowflake_connector.py` to load into `RAW.CRASHES`
+- Triggers dbt (staging → intermediate → marts) once loads succeed
 
-### run_dbt_pipeline
-- Runs dbt models:
-    - staging  
-    - intermediate  
-    - marts: FACT_CRASHES, DIM_WEATHER, DIM_LOCATION, DIM_TRAFFIC, DIM_DATE  
+### snowflake_connector.py
+- Shared utility module used by the DAGs
+- Manages Snowflake connections, queries, and table creation
+- Encapsulates common DDL/DML used by ETL tasks
 
 ---
 
 ## 🧱 dbt Layer
 
-Run commands:
+Example manual dbt commands (inside your dbt project):
 
+    cd dbt
     dbt debug
     dbt run
     dbt test
 
-Validation queries:
+Example checks in Snowflake:
 
     SELECT COUNT(*) FROM RAW.CRASHES;
-    SELECT * FROM MART.FACT_CRASHES LIMIT 20;
+    SELECT * FROM MART.FACT_CRASHES ORDER BY CRASH_DATE DESC LIMIT 20;
+
+dbt models typically include:
+
+- Staging models: cleaned versions of `RAW` tables  
+- Intermediate models: crash joined with weather + traffic  
+- Mart models:  
+    - `FACT_CRASHES`  
+    - `DIM_DATE`  
+    - `DIM_LOCATION`  
+    - `DIM_WEATHER`  
+    - `DIM_TRAFFIC`  
 
 ---
 
 ## 📊 Tableau Dashboard
 
-Snowflake connection:
+Snowflake connection settings for Tableau:
 
     Warehouse: COMPUTE_WH
     Database: ACCIDENT_DW
     Schema: MART
 
-Recommended visuals:
-- Crash trends by month  
-- Severity distribution  
-- Weather × traffic control heatmaps  
-- Road surface & lighting analysis  
-- Geo accident hotspots  
-- Crash forecasting  
+Recommended charts:
+
+- Crashes by month / year  
+- Severity distribution (minor, moderate, severe, fatal)  
+- Collision type breakdown  
+- Weather vs. traffic control heatmap  
+- Road surface and lighting condition impacts  
+- Geospatial accident hotspots (map)  
+- Simple crash forecast over time  
+
+Combine these into a single **Accident Analytics Dashboard** for your presentation.
 
 ---
 
 ## 📄 License
-Educational use — DATA 226 (San José State University)
+
+For educational use in **DATA 226 — Data Warehousing** (San José State University).
