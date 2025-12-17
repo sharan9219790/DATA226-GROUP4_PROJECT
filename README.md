@@ -24,7 +24,7 @@ Pipeline steps:
     ├── tableau/                     # Tableau dashboards / screenshots
     ├── compose.yaml                 # Docker Compose for Airflow stack
     └── README.md
-    |___ dbt                         #dbt
+    |___ dbt                         #dbt files and data
 ---
 
 ## 🔧 Prerequisites
