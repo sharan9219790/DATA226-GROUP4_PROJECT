@@ -1,0 +1,14 @@
+santa_clara_crash_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: sfedu02-lvb17920
+      user: RAVEN
+      password: YOUR_PASSWORD_HERE      # <--- fill this in
+      role: TRAINING_ROLE
+      database: USER_DB_RAVEN
+      warehouse: X_SMALL_WH
+      schema: ANALYTICS
+      threads: 4
+      client_session_keep_alive: false

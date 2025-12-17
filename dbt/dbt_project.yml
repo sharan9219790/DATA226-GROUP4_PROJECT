@@ -1,0 +1,24 @@
+name: 'santa_clara_crash_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'santa_clara_crash_analytics'
+
+model-paths: ['models']
+analysis-paths: ['analyses']
+test-paths: ['tests']
+seed-paths: ['seeds']
+macro-paths: ['macros']
+snapshot-paths: ['snapshots']
+
+models:
+  santa_clara_crash_analytics:
+    +materialized: view
+
+    staging:
+      +schema: 'ANALYTICS'
+      +materialized: incremental
+
+    marts:
+      +schema: 'ANALYTICS'
+      +materialized: table
