@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_crashes
+    columns:
+      - name: crash_id
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_weather
+    columns:
+      - name: weather_event_id
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_traffic
+    columns:
+      - name: traffic_event_id
+        tests:
+          - not_null
+          - unique
