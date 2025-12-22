@@ -274,4 +274,3 @@ with DAG(
 
     start >> create_raw_table_task >> [load_2011_2021, load_2022_present] >> transform_crashes >> end
 
-
